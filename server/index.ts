@@ -3,7 +3,7 @@ import cors from "cors";
 import { drizzle } from "drizzle-orm/mysql2";
 import mysql from "mysql2/promise";
 import { eq, and } from "drizzle-orm";
-import { users, expenses, creditCardExpenses, extraIncomes } from "../drizzle/schema.js";
+import { users, expenses, creditCardExpenses, extraIncomes } from "../drizzle/schema.ts";
 import "dotenv/config";
 
 const app = express();
