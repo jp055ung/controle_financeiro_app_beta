@@ -16,7 +16,7 @@ function getPool() {
   return pool;
 }
 
-// AUTH
+// ── AUTH ──────────────────────────────────────────────────────────────────────
 app.post("/api/auth/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -24,10 +24,10 @@ app.post("/api/auth/register", async (req, res) => {
     if (!p) return res.status(500).json({ error: "DB indisponivel" });
     const [existing] = await p.execute("SELECT id FROM users WHERE email = ?", [email]) as any;
     if (existing.length > 0) return res.status(400).json({ error: "Email ja cadastrado" });
-    await p.execute("INSERT INTO users (name, email, password) VALUES (?, ?, ?)", [name, email, password]);
+    await p.execute("INSERT INTO users (name, email, password, salaryBase) VALUES (?, ?, ?, 0)", [name, email, password]);
     const [user] = await p.execute("SELECT * FROM users WHERE email = ?", [email]) as any;
     const u = user[0];
-    res.json({ user: { id: u.id, name: u.name, email: u.email, xp: 0, level: 'iniciante', levelNum: 1, streakDays: 0, isNewUser: true } });
+    res.json({ user: { id: u.id, name: u.name, email: u.email, salaryBase: "0", xp: 0, level: 'iniciante', levelNum: 1, streakDays: 0, isNewUser: true } });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
@@ -43,22 +43,37 @@ app.post("/api/auth/login", async (req, res) => {
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
+// FIX: settings retorna o salário salvo para o frontend atualizar o estado
 app.put("/api/users/:id/settings", async (req, res) => {
   try {
     const p = getPool();
     if (!p) return res.status(500).json({ error: "DB indisponivel" });
     const { salaryBase } = req.body;
-    await p.execute("UPDATE users SET salaryBase = ? WHERE id = ?", [salaryBase, req.params.id]);
-    res.json({ success: true });
+    if (salaryBase === undefined || salaryBase === null) return res.status(400).json({ error: "salaryBase obrigatorio" });
+    await p.execute("UPDATE users SET salaryBase = ? WHERE id = ?", [parseFloat(salaryBase), req.params.id]);
+    const [rows] = await p.execute("SELECT salaryBase FROM users WHERE id = ?", [req.params.id]) as any;
+    res.json({ success: true, salaryBase: rows[0]?.salaryBase });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-// XP
+// GET perfil do usuário (para reload do salário)
+app.get("/api/auth/me/:id", async (req, res) => {
+  try {
+    const p = getPool();
+    if (!p) return res.status(500).json({ error: "DB indisponivel" });
+    const [rows] = await p.execute("SELECT id, name, email, salaryBase, xp, levelNum, level, streakDays, lastCheckin FROM users WHERE id = ?", [req.params.id]) as any;
+    if (!rows.length) return res.status(404).json({ error: "Usuario nao encontrado" });
+    res.json(rows[0]);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ── XP ────────────────────────────────────────────────────────────────────────
 app.post("/api/users/:id/xp", async (req, res) => {
   try {
     const p = getPool();
     if (!p) return res.status(500).json({ error: "DB indisponivel" });
     const { xpGain } = req.body;
+    if (!xpGain || xpGain <= 0) return res.status(400).json({ error: "xpGain invalido" });
     const [rows] = await p.execute("SELECT xp, levelNum, level FROM users WHERE id = ?", [req.params.id]) as any;
     if (!rows.length) return res.status(404).json({ error: "Usuario nao encontrado" });
     const currentXp = (rows[0].xp || 0) + xpGain;
@@ -68,7 +83,7 @@ app.post("/api/users/:id/xp", async (req, res) => {
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-// DAILY STREAK
+// ── STREAK ────────────────────────────────────────────────────────────────────
 app.get("/api/users/:id/streak", async (req, res) => {
   try {
     const p = getPool();
@@ -82,10 +97,10 @@ app.get("/api/users/:id/streak", async (req, res) => {
     const lastDay = lastDate ? new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate()) : null;
     const claimedToday = lastDay ? lastDay.getTime() === today.getTime() : false;
     const midnight = new Date(today.getTime() + 86400000);
-    const expiresIn = midnight.getTime() - now.getTime();
-    const expiresHours = Math.floor(expiresIn / 3600000);
-    const expiresMinutes = Math.floor((expiresIn % 3600000) / 60000);
-    res.json({ streakDays: streakDays || 0, claimedToday, expiresIn: `${expiresHours}h ${expiresMinutes}m` });
+    const ms = midnight.getTime() - now.getTime();
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    res.json({ streakDays: streakDays || 0, claimedToday, expiresIn: `${h}h ${m}m` });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
@@ -104,8 +119,8 @@ app.post("/api/users/:id/streak/checkin", async (req, res) => {
     const yesterday = new Date(today.getTime() - 86400000);
     const streakBroken = lastDay && lastDay.getTime() < yesterday.getTime();
     const newStreak = streakBroken ? 1 : (streakDays || 0) + 1;
-    const streakXpMap: Record<number, number> = { 1: 5, 2: 15, 3: 25, 4: 35, 5: 50, 6: 65, 7: 100, 14: 150, 30: 300 };
-    const xpGain = streakXpMap[newStreak] ?? 65;
+    const xpMap: Record<number, number> = { 1: 5, 2: 15, 3: 25, 4: 35, 5: 50, 6: 65, 7: 100, 14: 150, 30: 300 };
+    const xpGain = xpMap[newStreak] ?? 65;
     const newXp = (xp || 0) + xpGain;
     const newLevelNum = Math.min(Math.floor(newXp / 100) + 1, 50);
     await p.execute("UPDATE users SET streakDays = ?, lastCheckin = NOW(), xp = ?, levelNum = ? WHERE id = ?", [newStreak, newXp, newLevelNum, req.params.id]);
@@ -113,12 +128,12 @@ app.post("/api/users/:id/streak/checkin", async (req, res) => {
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-// EXPENSES
+// ── EXPENSES ──────────────────────────────────────────────────────────────────
 app.get("/api/users/:userId/expenses", async (req, res) => {
   try {
     const p = getPool();
     if (!p) return res.json([]);
-    const [rows] = await p.execute("SELECT * FROM expenses WHERE userId = ?", [req.params.userId]) as any;
+    const [rows] = await p.execute("SELECT * FROM expenses WHERE userId = ? ORDER BY categoryId, createdAt", [req.params.userId]) as any;
     res.json(rows);
   } catch { res.json([]); }
 });
@@ -129,11 +144,14 @@ app.post("/api/users/:userId/expenses", async (req, res) => {
     if (!p) return res.status(500).json({ error: "DB indisponivel" });
     const { categoryId, name, amount, subcategory, dueDate, recurring, recurringMonths, recurringGoal } = req.body;
     if (!categoryId || !name || !amount) return res.status(400).json({ error: "Campos obrigatorios: categoria, nome e valor" });
+    const parsedAmount = parseFloat(amount);
+    const parsedGoal = recurringGoal ? parseFloat(recurringGoal) : null;
+    const parsedMonths = recurringMonths ? parseInt(recurringMonths) : null;
     await p.execute(
       "INSERT INTO expenses (userId, categoryId, name, amount, subcategory, dueDate, paid, recurring, recurringMonths, recurringGoal) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)",
-      [req.params.userId, categoryId, name, amount, subcategory || null, dueDate ? new Date(dueDate) : null, recurring ? 1 : 0, recurringMonths || null, recurringGoal || null]
+      [req.params.userId, parseInt(categoryId), name, parsedAmount, subcategory || null, dueDate ? new Date(dueDate) : null, recurring ? 1 : 0, parsedMonths, parsedGoal]
     );
-    const [rows] = await p.execute("SELECT * FROM expenses WHERE userId = ?", [req.params.userId]) as any;
+    const [rows] = await p.execute("SELECT * FROM expenses WHERE userId = ? ORDER BY categoryId, createdAt", [req.params.userId]) as any;
     res.json(rows);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
@@ -156,7 +174,7 @@ app.delete("/api/expenses/:id", async (req, res) => {
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-// CREDIT CARD
+// ── CREDIT CARD ───────────────────────────────────────────────────────────────
 app.get("/api/users/:userId/credit-card", async (req, res) => {
   try {
     const p = getPool();
@@ -171,7 +189,7 @@ app.post("/api/users/:userId/credit-card", async (req, res) => {
     const p = getPool();
     if (!p) return res.status(500).json({ error: "DB indisponivel" });
     await p.execute("INSERT INTO creditCardExpenses (userId, description, amount, subcategory) VALUES (?, ?, ?, ?)",
-      [req.params.userId, req.body.description, req.body.amount, req.body.subcategory || null]);
+      [req.params.userId, req.body.description, parseFloat(req.body.amount), req.body.subcategory || null]);
     const [rows] = await p.execute("SELECT * FROM creditCardExpenses WHERE userId = ?", [req.params.userId]) as any;
     res.json(rows);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
@@ -186,7 +204,7 @@ app.delete("/api/credit-card/:id", async (req, res) => {
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-// EXTRA INCOME
+// ── EXTRA INCOME ──────────────────────────────────────────────────────────────
 app.get("/api/users/:userId/extra-income", async (req, res) => {
   try {
     const p = getPool();
@@ -201,7 +219,7 @@ app.post("/api/users/:userId/extra-income", async (req, res) => {
     const p = getPool();
     if (!p) return res.status(500).json({ error: "DB indisponivel" });
     await p.execute("INSERT INTO extraIncomes (userId, description, amount, date) VALUES (?, ?, ?, NOW())",
-      [req.params.userId, req.body.description, req.body.amount]);
+      [req.params.userId, req.body.description, parseFloat(req.body.amount)]);
     const [rows] = await p.execute("SELECT * FROM extraIncomes WHERE userId = ?", [req.params.userId]) as any;
     res.json(rows);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
@@ -216,36 +234,66 @@ app.delete("/api/extra-income/:id", async (req, res) => {
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-// RESET MENSAL — agora ARQUIVA antes de apagar
+// ── RESET MENSAL — FIX: não zera XP, arquiva tudo corretamente ───────────────
 app.post("/api/users/:userId/reset-month", async (req, res) => {
   try {
     const p = getPool();
     if (!p) return res.status(500).json({ error: "DB indisponivel" });
     const month = new Date().toISOString().slice(0, 7);
+    // Arquiva snapshot do mês antes de limpar
     await p.execute(
       `INSERT INTO monthArchive (userId, month, expensesJson, creditCardJson, incomesJson)
        SELECT ?, ?,
-         (SELECT IFNULL(JSON_ARRAYAGG(JSON_OBJECT('name',name,'amount',amount,'categoryId',categoryId,'paid',paid)),'[]') FROM expenses WHERE userId = ?),
-         (SELECT IFNULL(JSON_ARRAYAGG(JSON_OBJECT('description',description,'amount',amount)),'[]') FROM creditCardExpenses WHERE userId = ?),
-         (SELECT IFNULL(JSON_ARRAYAGG(JSON_OBJECT('description',description,'amount',amount)),'[]') FROM extraIncomes WHERE userId = ?)
-       ON DUPLICATE KEY UPDATE expensesJson=VALUES(expensesJson), creditCardJson=VALUES(creditCardJson), incomesJson=VALUES(incomesJson)`,
+         IFNULL((SELECT JSON_ARRAYAGG(JSON_OBJECT('name',name,'amount',CAST(amount AS CHAR),'categoryId',categoryId,'paid',paid)) FROM expenses WHERE userId = ?),'[]'),
+         IFNULL((SELECT JSON_ARRAYAGG(JSON_OBJECT('description',description,'amount',CAST(amount AS CHAR))) FROM creditCardExpenses WHERE userId = ?),'[]'),
+         IFNULL((SELECT JSON_ARRAYAGG(JSON_OBJECT('description',description,'amount',CAST(amount AS CHAR))) FROM extraIncomes WHERE userId = ?),'[]')
+       ON DUPLICATE KEY UPDATE
+         expensesJson=VALUES(expensesJson),
+         creditCardJson=VALUES(creditCardJson),
+         incomesJson=VALUES(incomesJson)`,
       [req.params.userId, month, req.params.userId, req.params.userId, req.params.userId]
     );
+    // Limpa dados do mês — XP NÃO é zerado (fica no users)
     await p.execute("DELETE FROM expenses WHERE userId = ?", [req.params.userId]);
     await p.execute("DELETE FROM creditCardExpenses WHERE userId = ?", [req.params.userId]);
     await p.execute("DELETE FROM extraIncomes WHERE userId = ?", [req.params.userId]);
-    res.json({ success: true });
+    // Retorna dados do usuário pós-reset (sem tocar XP)
+    const [uRows] = await p.execute("SELECT xp, levelNum, level, salaryBase FROM users WHERE id = ?", [req.params.userId]) as any;
+    res.json({ success: true, month, user: uRows[0] });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-// INIT DB
+// ── HISTÓRICO DE MESES ────────────────────────────────────────────────────────
+app.get("/api/users/:userId/history", async (req, res) => {
+  try {
+    const p = getPool();
+    if (!p) return res.json([]);
+    const [rows] = await p.execute(
+      "SELECT month, expensesJson, creditCardJson, incomesJson, createdAt FROM monthArchive WHERE userId = ? ORDER BY month DESC LIMIT 12",
+      [req.params.userId]
+    ) as any;
+    // Processa cada mês para calcular totais
+    const history = rows.map((row: any) => {
+      const expenses = JSON.parse(row.expensesJson || '[]');
+      const cc = JSON.parse(row.creditCardJson || '[]');
+      const incomes = JSON.parse(row.incomesJson || '[]');
+      const totalExp = expenses.reduce((s: number, e: any) => s + parseFloat(e.amount || 0), 0);
+      const totalCC = cc.reduce((s: number, c: any) => s + parseFloat(c.amount || 0), 0);
+      const totalIncome = incomes.reduce((s: number, i: any) => s + parseFloat(i.amount || 0), 0);
+      return { month: row.month, totalExpenses: totalExp + totalCC, totalIncome, balance: totalIncome - totalExp - totalCC, items: expenses.length + cc.length };
+    });
+    res.json(history);
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// ── INIT DB ───────────────────────────────────────────────────────────────────
 app.get("/api/admin/init-db", async (_req, res) => {
   try {
     const p = getPool();
     if (!p) return res.status(500).json({ error: "DB indisponivel" });
     await p.execute(`CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), email VARCHAR(320) UNIQUE,
-      password VARCHAR(255), salaryBase DECIMAL(10,2) DEFAULT 2300.00,
+      password VARCHAR(255), salaryBase DECIMAL(10,2) DEFAULT 0,
       level VARCHAR(20) DEFAULT 'iniciante', levelNum INT DEFAULT 1,
       xp INT DEFAULT 0, positiveMonths INT DEFAULT 0,
       streakDays INT DEFAULT 0, lastCheckin TIMESTAMP NULL,
@@ -266,17 +314,19 @@ app.get("/api/admin/init-db", async (_req, res) => {
     await p.execute(`CREATE TABLE IF NOT EXISTS monthArchive (
       id INT AUTO_INCREMENT PRIMARY KEY, userId INT NOT NULL, month VARCHAR(7) NOT NULL,
       expensesJson JSON, creditCardJson JSON, incomesJson JSON,
-      createdAt TIMESTAMP DEFAULT NOW(),
-      UNIQUE KEY user_month (userId, month))`);
-    try { await p.execute("ALTER TABLE users ADD COLUMN streakDays INT DEFAULT 0"); } catch {}
-    try { await p.execute("ALTER TABLE users ADD COLUMN lastCheckin TIMESTAMP NULL"); } catch {}
-    try { await p.execute("ALTER TABLE expenses ADD COLUMN recurringMonths INT NULL"); } catch {}
-    try { await p.execute("ALTER TABLE expenses ADD COLUMN recurringGoal DECIMAL(10,2) NULL"); } catch {}
-    res.json({ success: true, message: "Banco inicializado!" });
+      createdAt TIMESTAMP DEFAULT NOW(), UNIQUE KEY user_month (userId, month))`);
+    // Migrações seguras
+    for (const sql of [
+      "ALTER TABLE users ADD COLUMN streakDays INT DEFAULT 0",
+      "ALTER TABLE users ADD COLUMN lastCheckin TIMESTAMP NULL",
+      "ALTER TABLE expenses ADD COLUMN recurringMonths INT NULL",
+      "ALTER TABLE expenses ADD COLUMN recurringGoal DECIMAL(10,2) NULL",
+    ]) { try { await p.execute(sql); } catch {} }
+    res.json({ success: true, message: "Banco OK!" });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
 app.get("*", (_req, res) => { res.sendFile("index.html", { root: "dist/client" }); });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🪙 MoneyGame rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`MoneyGame porta ${PORT}`));
