@@ -1,14 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 
+// Logo MoneyGame — fundo roxo #820AD1 estilo Nubank com emoji 💸
 function CoinIcon({ size = 40 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="20" cy="20" r="19" fill="url(#cg)" stroke="#c8910a" strokeWidth="1.5"/>
-      <circle cx="20" cy="20" r="15" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1"/>
-      <text x="20" y="26" textAnchor="middle" fontSize="16" fontWeight="900" fontFamily="'Figtree',sans-serif" fill="#7a4a00">$</text>
-      <defs><linearGradient id="cg" x1="8" y1="4" x2="32" y2="36" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#ffe066"/><stop offset="40%" stopColor="#ffd700"/><stop offset="100%" stopColor="#d4900a"/>
-      </linearGradient></defs>
+    <svg width={size} height={size} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <rect x="0" y="0" width="100" height="100" rx="24" ry="24" fill="#820AD1"/>
+      <text x="50" y="72" fontSize="56" textAnchor="middle" fontFamily="Segoe UI Emoji,Apple Color Emoji,Noto Color Emoji,sans-serif">💸</text>
     </svg>
   );
 }
@@ -649,6 +646,131 @@ function RankingContent({ currentUserId }: { currentUserId: number }) {
   );
 }
 
+// ── POP-UP DOAÇÃO ─────────────────────────────────────────────────────────────
+const DONATION_MSGS = [
+  ["Você também faz parte desse projeto ✨", "Criado por uma pessoa só, para quem quer superar sua situação financeira com método."],
+  ["Apoie um criador independente ☕", "O MoneyGame nasceu de uma necessidade real. Se ele está te ajudando, considere retribuir."],
+  ["Sua ajuda chega mais longe do que você imagina 🚀", "Com R$25 você mantém o servidor no ar por um mês inteiro."],
+  ["O dinheiro pode mudar de lado — comece aqui 💚", "Criado por alguém que também está nessa jornada. Juntos chegamos mais longe."],
+  ["Que tal um café para quem criou isso pra você? ☕", "Um gesto simples que mantém vivo um projeto feito com propósito."],
+  ["Há saída — e esse app prova isso todo dia 🌱", "Foi criado porque quem o fez também precisava de esperança financeira."],
+  ["Você merece clareza financeira. O criador merece seu apoio 💜", "Sem patrocínio, sem investidor. Só um projeto feito com método."],
+  ["Cada real aqui volta como funcionalidade pra você 🔄", "O apoio dos usuários financia melhorias e novas ferramentas."],
+  ["Sua opinião e apoio constroem o futuro do app 💬", "Tem uma sugestão também? Manda junto com seu café!"],
+  ["Controle financeiro é possível — acredite nisso 🏆", "Esse app existe porque alguém acreditou que era possível mudar de vida."],
+];
+
+function DonationPopup({ onClose }: { onClose: () => void }) {
+  const idx = parseInt(localStorage.getItem("mg_donation_idx") || "0") % DONATION_MSGS.length;
+  const [title, sub] = DONATION_MSGS[idx];
+  const [copied, setCopied] = useState(false);
+  const copyPix = () => {
+    navigator.clipboard.writeText("11976016950").then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  };
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.82)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:300, padding:20 }} onClick={onClose}>
+      <div style={{ background:"var(--bg2)", borderRadius:20, width:"100%", maxWidth:380, overflow:"hidden", border:"1px solid rgba(130,10,209,0.3)" }} onClick={e=>e.stopPropagation()}>
+        <div style={{ background:"var(--bg3)", padding:"18px 20px 14px", borderBottom:"1px solid var(--border)", position:"relative" }}>
+          <button onClick={onClose} style={{ position:"absolute", top:12, right:14, background:"var(--bg2)", border:"1px solid var(--border)", color:"var(--text2)", width:26, height:26, borderRadius:"50%", fontSize:13, cursor:"pointer" }}>✕</button>
+          <div style={{ display:"inline-block", background:"rgba(130,10,209,0.2)", color:"#c084fc", fontSize:10, fontWeight:700, letterSpacing:0.8, padding:"3px 9px", borderRadius:20, marginBottom:10, textTransform:"uppercase" }}>Apoie o projeto</div>
+          <div style={{ fontSize:15, fontWeight:700, color:"var(--text)", lineHeight:1.4, marginBottom:5 }}>{title}</div>
+          <div style={{ fontSize:12, color:"var(--text2)", lineHeight:1.5 }}>{sub}</div>
+        </div>
+        <div style={{ padding:"16px 20px" }}>
+          <div style={{ background:"rgba(130,10,209,0.07)", border:"0.5px solid rgba(130,10,209,0.2)", borderRadius:10, padding:"11px 13px", marginBottom:12, fontSize:12, color:"var(--text2)", lineHeight:1.6 }}>
+            As análises e insights são de <strong style={{color:"#c084fc"}}>inteligência artificial</strong>, mas seu criador não — por isso, para o projeto se manter, precisamos do seu apoio.
+          </div>
+          <div style={{ background:"rgba(0,214,143,0.06)", border:"0.5px solid rgba(0,214,143,0.2)", borderRadius:10, padding:"11px 14px", marginBottom:12, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            <div>
+              <div style={{ fontSize:10, color:"var(--text2)", textTransform:"uppercase", letterSpacing:0.6, fontWeight:700, marginBottom:3 }}>Contribuição sugerida</div>
+              <div style={{ fontSize:22, fontWeight:800, color:"var(--green)", lineHeight:1 }}>R$ 25</div>
+              <div style={{ fontSize:11, color:"var(--text2)", marginTop:2 }}>cobre 1 mês do servidor</div>
+            </div>
+            <div style={{ background:"rgba(0,214,143,0.12)", color:"var(--green)", fontSize:10, fontWeight:700, padding:"6px 10px", borderRadius:8, textAlign:"center", lineHeight:1.5 }}>Sua ajuda<br/>chega longe 🚀</div>
+          </div>
+          <div style={{ background:"var(--bg3)", border:"1px solid var(--border)", borderRadius:10, padding:"13px", marginBottom:10 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:7, marginBottom:10 }}>
+              <div style={{ width:8, height:8, borderRadius:"50%", background:"#820AD1", flexShrink:0 }}/>
+              <span style={{ fontSize:11, color:"var(--text2)", fontWeight:700 }}>PIX · Nubank</span>
+            </div>
+            <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+              <div style={{ flex:1 }}>
+                <div style={{ fontFamily:"monospace", fontSize:13, color:"var(--text)", fontWeight:600 }}>11976016950</div>
+                <div style={{ fontSize:11, color:"var(--text2)", marginTop:2 }}>João P S Saraiva</div>
+              </div>
+              <button onClick={copyPix} style={{ background:"rgba(130,10,209,0.15)", border:"0.5px solid rgba(130,10,209,0.35)", color:"#c084fc", fontSize:11, fontWeight:700, padding:"7px 12px", borderRadius:7, cursor:"pointer", whiteSpace:"nowrap" }}>
+                {copied ? "✓ Copiado!" : "Copiar Pix"}
+              </button>
+            </div>
+          </div>
+          <a href="https://ko-fi.com/moneygame" target="_blank" rel="noopener noreferrer"
+            style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:"rgba(255,215,0,0.06)", border:"0.5px solid rgba(255,215,0,0.2)", color:"#c9a800", fontSize:12, fontWeight:600, padding:"10px", borderRadius:8, textDecoration:"none", marginBottom:4 }}>
+            ☕ Pague um Ko-fi ao criador
+          </a>
+          <div style={{ fontSize:10, color:"var(--text2)", textAlign:"center", marginBottom:10, lineHeight:1.5 }}>Ko-fi aceita cartão de crédito ou pagamento recorrente — ideal para quem quer apoiar mensalmente</div>
+          <div style={{ fontSize:11, color:"var(--text2)", textAlign:"center" }}>Sem cobrança automática. Você decide se e quanto quer apoiar.</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function useDonationPopup(createdAt?: string) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    if (!createdAt) return;
+    const daysSince = (Date.now() - new Date(createdAt).getTime()) / 86400000;
+    if (daysSince < 7) return;
+    const lastTs = parseInt(localStorage.getItem("mg_donation_last") || "0");
+    if ((Date.now() - lastTs) / 86400000 < 7) return;
+    const monthKey = `mg_donation_month_${new Date().toISOString().slice(0,7)}`;
+    if (parseInt(localStorage.getItem(monthKey) || "0") >= 4) return;
+    const t = setTimeout(() => {
+      setShow(true);
+      localStorage.setItem("mg_donation_last", String(Date.now()));
+      localStorage.setItem(monthKey, String(parseInt(localStorage.getItem(monthKey)||"0") + 1));
+      const idx = parseInt(localStorage.getItem("mg_donation_idx") || "0");
+      localStorage.setItem("mg_donation_idx", String((idx + 1) % DONATION_MSGS.length));
+    }, 2000);
+    return () => clearTimeout(t);
+  }, [createdAt]);
+  return { show, close: () => setShow(false) };
+}
+
+// ── EMOJI PICKER ──────────────────────────────────────────────────────────────
+const EMOJI_OPTIONS = ["💸","🦁","🐯","🦊","🐺","🦅","🐉","🌟","🚀","💎","⚡","🔥","🎯","🏆","💪","🧠","👑","🌙","🎲","🌊"];
+
+function EmojiPickerModal({ onSave, onClose, current }: { onSave:(emoji:string,nick:string)=>void; onClose:()=>void; current?:{emoji?:string;nick?:string} }) {
+  const [emoji, setEmoji] = useState(current?.emoji || "💸");
+  const [nick, setNick]   = useState(current?.nick  || "");
+  return (
+    <Modal title="🎮 Sua identidade no ranking" onClose={onClose}>
+      <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+        <div>
+          <div style={{ fontSize:11, color:"var(--text2)", fontWeight:700, marginBottom:8, letterSpacing:1 }}>ESCOLHA SEU EMOJI</div>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+            {EMOJI_OPTIONS.map(e=>(
+              <button key={e} onClick={()=>setEmoji(e)}
+                style={{ width:44, height:44, fontSize:22, borderRadius:10, border:`2px solid ${emoji===e?"#820AD1":"var(--border)"}`, background:emoji===e?"rgba(130,10,209,0.15)":"var(--bg3)", cursor:"pointer" }}>
+                {e}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label style={{ fontSize:11, color:"var(--text2)", fontWeight:700, display:"block", marginBottom:6, letterSpacing:1 }}>APELIDO (opcional)</label>
+          <input placeholder={`Deixe em branco para usar ${emoji}`} value={nick} onChange={e=>setNick(e.target.value)} maxLength={20}/>
+          <div style={{ fontSize:11, color:"var(--text2)", marginTop:4 }}>Aparece no ranking. Nenhum dado pessoal é exibido.</div>
+        </div>
+        <div style={{ display:"flex", gap:8 }}>
+          <button className="btn-ghost" onClick={onClose} style={{ flex:1 }}>Cancelar</button>
+          <button className="btn-primary" onClick={()=>onSave(emoji, nick.trim() || emoji)} style={{ flex:1 }}>Salvar identidade</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // ── DASHBOARD CONTENT ─────────────────────────────────────────────────────────
 function DashboardContent({ expenses,cc,incomes,salary,balance,totalExpSemSonho,totalCC,totalIncome,totalPaid,totalPending,extraNeeded,sonhoTotal,sonhoPago,sonhoRecorrente,sonhoProgresso,byCategory,streakDays,streakClaimed,healthScore,xp,onStreak,onCreditClick }: any) {
   return (
@@ -795,6 +917,8 @@ export default function App() {
   const [showMethodology, setShowMethodology] = useState(false);
   const [showReset, setShowReset] = useState(false);
   const [showStreak, setShowStreak] = useState(false);
+  const [showDonation, setShowDonation] = useState(false);
+  const donation = useDonationPopup((user as any)?.createdAt);
   const [isPC, setIsPC] = useState(typeof window!=="undefined" && window.innerWidth>=1024);
 
   useEffect(()=>{ const h=()=>setIsPC(window.innerWidth>=1024); window.addEventListener("resize",h); return()=>window.removeEventListener("resize",h); },[]);
@@ -911,6 +1035,7 @@ export default function App() {
       {showSettings&&<SettingsModal user={user} salary={salary} onSave={(s:number,newUser?:Partial<User>)=>{setSalary(s);if(newUser?.nickname!==undefined)setUser(u=>u?{...u,...newUser}:u);showToast("✅ Configurações salvas!");setShowSettings(false);}} onClose={()=>setShowSettings(false)} onReset={()=>{setShowSettings(false);setShowReset(true);}}/>}
       {showMethodology&&<MethodologyModal onClose={()=>setShowMethodology(false)}/>}
       {showReset&&<ResetModal onClose={()=>setShowReset(false)} onConfirm={handleReset}/>}
+      {(showDonation||donation.show)&&<DonationPopup onClose={()=>{setShowDonation(false);donation.close();}}/>}
     </>
   );
 
@@ -954,6 +1079,7 @@ export default function App() {
           <div style={{ padding:"10px 10px 20px", borderTop:"1px solid var(--border)", display:"flex", flexDirection:"column", gap:6 }}>
             <button onClick={()=>setShowMethodology(true)} style={{ width:"100%", background:"var(--bg3)", border:"1px solid var(--border)", color:"var(--text2)", padding:"9px 12px", borderRadius:10, fontSize:12, textAlign:"left", cursor:"pointer" }}>📚 Metodologia</button>
             <button onClick={()=>setShowSettings(true)} style={{ width:"100%", background:"var(--bg3)", border:"1px solid var(--border)", color:"var(--text2)", padding:"9px 12px", borderRadius:10, fontSize:12, textAlign:"left", cursor:"pointer" }}>⚙️ Configurações</button>
+            <button onClick={()=>setShowDonation(true)} style={{ width:"100%", background:"rgba(255,215,0,0.06)", border:"1px solid rgba(255,215,0,0.2)", color:"#c9a800", padding:"9px 12px", borderRadius:10, fontSize:12, textAlign:"left", cursor:"pointer" }}>☕ Pague um Ko-fi ao criador</button>
             <button onClick={logout} style={{ width:"100%", background:"rgba(255,77,106,0.08)", border:"1px solid rgba(255,77,106,0.2)", color:"var(--red)", padding:"9px 12px", borderRadius:10, fontSize:12, textAlign:"left", cursor:"pointer" }}>🚪 Sair</button>
           </div>
         </aside>
@@ -1403,7 +1529,7 @@ function SettingsModal({ user, salary, onSave, onClose, onReset }: any) {
       })});
       const data = await res.json();
       if (res.ok) {
-        onSave(parseFloat((data.salaryBase ?? s) || "0"), { nickname: data.nickname, emoji: data.emoji });
+        onSave(parseFloat(data.salaryBase ?? s || "0"), { nickname: data.nickname, emoji: data.emoji });
       }
     } catch { onSave(parseFloat(s||"0")); }
     setLoading(false);
