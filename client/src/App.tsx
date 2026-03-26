@@ -1674,7 +1674,7 @@ function SettingsModal({ user, salary, onSave, onClose, onReset }: any) {
       })});
       const data = await res.json();
       if (res.ok) {
-        onSave(parseFloat(data.salaryBase ?? s || "0"), { nickname: data.nickname, emoji: data.emoji });
+        onSave(parseFloat((data.salaryBase ?? s) || "0"), { nickname: data.nickname, emoji: data.emoji });
       }
     } catch { onSave(parseFloat(s||"0")); }
     setLoading(false);
