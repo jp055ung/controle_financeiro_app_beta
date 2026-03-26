@@ -772,126 +772,187 @@ function EmojiPickerModal({ onSave, onClose, current }: { onSave:(emoji:string,n
 }
 
 // ── DASHBOARD CONTENT ─────────────────────────────────────────────────────────
-function DashboardContent({ expenses,cc,incomes,salary,balance,totalExpSemSonho,totalCC,totalIncome,totalPaid,totalPending,extraNeeded,sonhoTotal,sonhoPago,sonhoRecorrente,sonhoProgresso,byCategory,streakDays,streakClaimed,healthScore,xp,onStreak,onCreditClick }: any) {
+// ── SEÇÃO COLAPSÁVEL ─────────────────────────────────────────────────────────
+function CollapsibleSection({ title, sub, defaultOpen=false, children }: { title:string; sub?:string; defaultOpen?:boolean; children:React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <>
-      <HealthCard score={healthScore} salary={salary}/>
-
-      {/* STREAK */}
-      <div onClick={onStreak} style={{ background:streakClaimed?"rgba(0,214,143,0.05)":"rgba(108,99,255,0.06)", border:`1px solid ${streakClaimed?"rgba(0,214,143,0.28)":"rgba(108,99,255,0.32)"}`, borderRadius:14, padding:"14px 16px", marginBottom:14, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-          <div style={{ width:44, height:44, borderRadius:12, background:`${streakClaimed?"rgba(0,214,143,0.12)":"rgba(108,99,255,0.12)"}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, flexShrink:0 }}>{getStreakIcon(streakDays)}</div>
-          <div>
-            <div style={{ fontSize:10, color:"var(--text2)", fontWeight:700, textTransform:"uppercase", letterSpacing:1, marginBottom:2 }}>Streak Diária</div>
-            <div style={{ fontSize:15, fontWeight:800, color:streakClaimed?"var(--green)":"#a78bfa" }}>
-              {streakClaimed ? `✅ ${streakDays} dias consecutivos` : `${streakDays} dias · toque para resgatar`}
-            </div>
-          </div>
+    <div style={{ background:"var(--bg2)", borderRadius:16, overflow:"hidden", marginBottom:8 }}>
+      <div onClick={()=>setOpen(o=>!o)} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 16px", cursor:"pointer", userSelect:"none" as any }}>
+        <div>
+          <div style={{ fontSize:14, fontWeight:700, color:"var(--text)" }}>{title}</div>
+          {sub && <div style={{ fontSize:11, color:"var(--text2)", marginTop:2 }}>{sub}</div>}
         </div>
-        {!streakClaimed&&<div style={{ background:"rgba(108,99,255,0.15)", border:"1px solid rgba(108,99,255,0.3)", color:"#a78bfa", fontSize:12, fontWeight:700, padding:"6px 12px", borderRadius:10, whiteSpace:"nowrap", flexShrink:0 }}>+{getStreakXP(streakDays+1)} XP</div>}
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{ transition:"transform 0.25s", transform:open?"rotate(180deg)":"rotate(0deg)", flexShrink:0 }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
       </div>
+      {open && <div style={{ borderTop:"0.5px solid var(--border)" }}>{children}</div>}
+    </div>
+  );
+}
 
-      {/* BOTÃO IA */}
-      <AIInsightButton salary={salary} totalExp={totalExpSemSonho} totalCC={totalCC} totalIncome={totalIncome} healthScore={healthScore} streakDays={streakDays} xp={xp}/>
-
-      {/* KPIs */}
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:14 }}>
-        {[
-          { label:"Salário Base",   value:fmt(salary),                          color:"var(--primary)", icon:"💼" },
-          { label:"Total Despesas", value:fmt(totalExpSemSonho+totalCC),        color:"var(--red)",     icon:"💸" },
-          { label:"Renda Extra",    value:fmt(totalIncome),                     color:"var(--green)",   icon:"💵" },
-          { label:"Saldo Livre",    value:fmt(balance), color:balance>=0?"var(--green)":"var(--red)", icon:balance>=0?"✅":"⚠️" },
-        ].map((k,i)=>(
-          <div key={i} style={{ background:"var(--bg2)", border:"1px solid var(--border)", borderRadius:14, padding:"12px 14px", borderTop:`3px solid ${k.color}` }}>
-            <div style={{ fontSize:17, marginBottom:3 }}>{k.icon}</div>
-            <div style={{ fontSize:10, color:"var(--text2)", fontWeight:700, textTransform:"uppercase", letterSpacing:0.4 }}>{k.label}</div>
-            <div style={{ fontSize:15, fontWeight:800, fontVariantNumeric:"tabular-nums", color:k.color, marginTop:2 }}>{k.value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* CC */}
-      {totalCC>0&&(
-        <div style={{ background:"var(--bg2)", border:"1px solid rgba(255,183,3,0.3)", borderRadius:14, padding:"12px 16px", marginBottom:14, borderTop:"3px solid var(--yellow)", display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer" }} onClick={onCreditClick}>
-          <div>
-            <div style={{ fontSize:10, color:"var(--text2)", fontWeight:700, textTransform:"uppercase", letterSpacing:0.4, marginBottom:3 }}>💳 Fatura do Cartão</div>
-            <div style={{ fontSize:20, fontWeight:900, fontVariantNumeric:"tabular-nums", color:"var(--yellow)" }}>{fmt(totalCC)}</div>
-            <div style={{ fontSize:11, color:"var(--text2)", marginTop:2 }}>{cc.length} lançamento{cc.length!==1?"s":""} · Ver detalhes</div>
-          </div>
-          <div style={{ fontSize:34 }}>💳</div>
+function SectionRow({ icon, iconBg, label, sub, value, valueColor, badge, bar, barPct, barColor }: any) {
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:12, padding:"11px 16px", borderBottom:"0.5px solid var(--border)" }}>
+      {icon && (
+        <div style={{ width:34, height:34, borderRadius:"50%", background:iconBg||"var(--bg3)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+          {icon}
         </div>
       )}
-
-      {/* SONHO */}
-      {sonhoTotal>0&&(
-        <div style={{ background:"linear-gradient(135deg,rgba(6,182,212,0.08),rgba(139,92,246,0.08))", border:"1px solid rgba(6,182,212,0.28)", borderRadius:14, padding:"12px 16px", marginBottom:14 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:sonhoRecorrente?8:0 }}>
-            <span style={{ fontSize:26 }}>✨</span>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:10, color:"#06b6d4", fontWeight:700, textTransform:"uppercase", letterSpacing:0.4 }}>Investindo no Sonho</div>
-              <div style={{ fontSize:15, fontWeight:800, fontVariantNumeric:"tabular-nums" }}>{fmt(sonhoTotal)} este mês</div>
-              {sonhoPago
-                ? <div style={{ fontSize:11, color:"var(--green)" }}>✅ Pago este mês — vitória!</div>
-                : <div style={{ fontSize:11, color:"var(--text2)" }}>Pendente · Você consegue!</div>
-              }
-            </div>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:13, color:"var(--text)", fontWeight:500 }}>{label}</div>
+        {sub && <div style={{ fontSize:11, color:"var(--text2)", marginTop:1 }}>{sub}</div>}
+        {bar && (
+          <div style={{ height:3, background:"var(--bg3)", borderRadius:2, marginTop:5, overflow:"hidden" }}>
+            <div style={{ height:"100%", width:`${barPct||0}%`, background:barColor||"var(--primary)", borderRadius:2, transition:"width 0.6s ease" }}/>
           </div>
-          {sonhoRecorrente&&(
+        )}
+      </div>
+      <div style={{ textAlign:"right", flexShrink:0 }}>
+        {value && <div style={{ fontSize:14, fontWeight:700, color:valueColor||"var(--text)", fontVariantNumeric:"tabular-nums" }} className="hideable">{value}</div>}
+        {badge && <div style={{ fontSize:10, padding:"2px 8px", borderRadius:20, marginTop:3, background:badge.bg, color:badge.color, fontWeight:700 }}>{badge.label}</div>}
+      </div>
+    </div>
+  );
+}
+
+function DashboardContent({ expenses,cc,incomes,salary,balance,totalExpSemSonho,totalCC,totalIncome,totalPaid,totalPending,extraNeeded,sonhoTotal,sonhoPago,sonhoRecorrente,sonhoProgresso,byCategory,streakDays,streakClaimed,healthScore,xp,onStreak,onCreditClick }: any) {
+  const totalGasto = totalExpSemSonho + totalCC;
+  const pendingCount = expenses.filter((e:any)=>!e.paid).length + cc.filter((c:any)=>!c.paid).length;
+  const investTotal = byCategory.find((c:any)=>c.id===3)?.total||0;
+  const sonhoItems = byCategory.find((c:any)=>c.id===6)?.items||[];
+
+  return (
+    <div style={{ paddingBottom:8 }}>
+
+      {/* SEÇÃO 1 — Resumo */}
+      <CollapsibleSection title="Resumo do mês" sub={new Date().toLocaleDateString("pt-BR",{month:"long",year:"numeric"})} defaultOpen={true}>
+        <SectionRow
+          icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00d68f" strokeWidth="2.5" strokeLinecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>}
+          iconBg="rgba(0,214,143,0.12)" label="Receita total" sub="Salário + extras"
+          value={fmt(salary+totalIncome)} valueColor="var(--green)"
+        />
+        <SectionRow
+          icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ff4d6a" strokeWidth="2.5" strokeLinecap="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/></svg>}
+          iconBg="rgba(255,77,106,0.12)" label="Total gasto" sub="Todas as categorias"
+          value={fmt(totalGasto)} valueColor="var(--red)"
+        />
+        <SectionRow
+          icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={balance>=0?"#00d68f":"#ff4d6a"} strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}
+          iconBg={balance>=0?"rgba(0,214,143,0.12)":"rgba(255,77,106,0.12)"}
+          label="Saldo livre" sub={`${salary+totalIncome>0?Math.round(balance/(salary+totalIncome)*100):0}% da receita`}
+          value={fmt(balance)} valueColor={balance>=0?"var(--green)":"var(--red)"}
+        />
+        <div style={{ padding:"10px 16px", display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ fontSize:12, color:"var(--text2)", minWidth:80 }}>Saúde {healthScore}/100</div>
+          <div style={{ flex:1, height:4, background:"var(--bg3)", borderRadius:2, overflow:"hidden" }}>
+            <div style={{ height:"100%", width:`${healthScore}%`, background:`linear-gradient(90deg,#ff4d6a,#ffd700,#00d68f)`, borderRadius:2 }}/>
+          </div>
+          <div style={{ fontSize:12, fontWeight:700, color:healthScore<34?"var(--red)":healthScore<67?"var(--yellow)":"var(--green)" }}>{getHealthBand(healthScore).label}</div>
+        </div>
+      </CollapsibleSection>
+
+      {/* SEÇÃO 2 — Contas e cartão */}
+      <CollapsibleSection title="Contas e cartão" sub={pendingCount>0?`${pendingCount} pendente${pendingCount>1?"s":""}`:"Tudo em dia"}>
+        {totalCC>0 && (
+          <div onClick={onCreditClick} style={{ cursor:"pointer" }}>
+            <SectionRow
+              icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>}
+              iconBg="rgba(167,139,250,0.12)" label="Cartão de crédito" sub={`${cc.length} lançamento${cc.length!==1?"s":""}`}
+              value={fmt(totalCC)} valueColor="var(--yellow)"
+              badge={{ label:"ver fatura", bg:"rgba(167,139,250,0.15)", color:"#a78bfa" }}
+            />
+          </div>
+        )}
+        {byCategory.filter((c:any)=>c.id===4&&c.items.length>0).flatMap((c:any)=>c.items).map((exp:any)=>(
+          <SectionRow key={exp.id}
+            icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={exp.paid?"#00d68f":"#ffd700"} strokeWidth="2" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+            iconBg={exp.paid?"rgba(0,214,143,0.1)":"rgba(255,215,0,0.1)"}
+            label={exp.name} sub={exp.recurring?"Recorrente":exp.dueDate?`Vence ${new Date(exp.dueDate).toLocaleDateString("pt-BR")}`:undefined}
+            value={fmt(num(exp.amount))} valueColor={exp.paid?"var(--text2)":"var(--text)"}
+            badge={exp.paid?{label:"pago",bg:"rgba(0,214,143,0.12)",color:"#00d68f"}:{label:"pendente",bg:"rgba(255,77,106,0.12)",color:"#ff4d6a"}}
+          />
+        ))}
+        {totalCC===0&&byCategory.filter((c:any)=>c.id===4).flatMap((c:any)=>c.items).length===0&&(
+          <div style={{ padding:"16px", textAlign:"center", color:"var(--text2)", fontSize:13 }}>Nenhuma conta cadastrada</div>
+        )}
+        <div style={{ padding:"10px 16px", display:"flex", justifyContent:"space-between", fontSize:12 }}>
+          <span style={{ color:"var(--text2)" }}>Pago: <span style={{ color:"var(--green)", fontWeight:700 }} className="hideable">{fmt(totalPaid)}</span></span>
+          <span style={{ color:"var(--text2)" }}>Pendente: <span style={{ color:"var(--yellow)", fontWeight:700 }} className="hideable">{fmt(totalPending)}</span></span>
+        </div>
+      </CollapsibleSection>
+
+      {/* SEÇÃO 3 — Investimentos e sonhos */}
+      {(investTotal>0||sonhoTotal>0) && (
+        <CollapsibleSection title="Investimentos e sonhos" sub="Este mês">
+          {investTotal>0 && (
+            <SectionRow
+              icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#00d68f" strokeWidth="2.5" strokeLinecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>}
+              iconBg="rgba(0,214,143,0.12)" label="Investimentos" sub="Capital alocado"
+              value={fmt(investTotal)} valueColor="var(--green)"
+              badge={{ label:`${salary+totalIncome>0?Math.round(investTotal/(salary+totalIncome)*100):0}% da receita`, bg:"rgba(0,214,143,0.1)", color:"#00d68f" }}
+            />
+          )}
+          {sonhoTotal>0 && (
             <>
-              <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"var(--text2)", marginBottom:4 }}>
-                <span>Meta: {fmt(num(sonhoRecorrente.recurringGoal))}</span>
-                <span>{Math.round(sonhoProgresso)}% concluído</span>
-              </div>
-              <div className="progress-bar"><div className="progress-fill" style={{ width:`${sonhoProgresso}%`, background:"linear-gradient(90deg,#06b6d4,#8b5cf6)" }}/></div>
+              <SectionRow
+                icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>}
+                iconBg="rgba(6,182,212,0.12)" label="Sonhos" sub={sonhoRecorrente?`Meta: ${fmt(num(sonhoRecorrente.recurringGoal))}`:undefined}
+                value={fmt(sonhoTotal)} valueColor="#06b6d4"
+                badge={sonhoPago?{label:"pago",bg:"rgba(0,214,143,0.12)",color:"#00d68f"}:{label:"pendente",bg:"rgba(255,183,3,0.12)",color:"#ffd700"}}
+                bar={!!sonhoRecorrente} barPct={sonhoProgresso} barColor="linear-gradient(90deg,#06b6d4,#8b5cf6)"
+              />
             </>
           )}
-        </div>
+        </CollapsibleSection>
       )}
 
-      {/* STATUS PAGAMENTO */}
-      <div className="card" style={{ marginBottom:14 }}>
-        <div style={{ fontSize:13, fontWeight:700, marginBottom:12 }}>📊 Status de Pagamento</div>
-        <div style={{ display:"flex", gap:10, marginBottom:10 }}>
-          <div style={{ flex:1, background:"rgba(0,214,143,.1)", border:"1px solid rgba(0,214,143,.2)", borderRadius:10, padding:"10px", textAlign:"center" }}>
-            <div style={{ color:"var(--green)", fontSize:15, fontWeight:800, fontVariantNumeric:"tabular-nums" }}>{fmt(totalPaid)}</div>
-            <div style={{ color:"var(--text2)", fontSize:10, marginTop:2 }}>Pago</div>
-          </div>
-          <div style={{ flex:1, background:"rgba(255,183,3,.1)", border:"1px solid rgba(255,183,3,.2)", borderRadius:10, padding:"10px", textAlign:"center" }}>
-            <div style={{ color:"var(--yellow)", fontSize:15, fontWeight:800, fontVariantNumeric:"tabular-nums" }}>{fmt(totalPending)}</div>
-            <div style={{ color:"var(--text2)", fontSize:10, marginTop:2 }}>Pendente</div>
-          </div>
-        </div>
-        <div className="progress-bar"><div className="progress-fill" style={{ width:`${(totalExpSemSonho+totalCC)>0?Math.min(totalPaid/(totalExpSemSonho+totalCC)*100,100):0}%`, background:"var(--green)" }}/></div>
-      </div>
+      {/* SEÇÃO 4 — Por categoria (colapsada por padrão) */}
+      <CollapsibleSection title="Por categoria" sub="Distribuição dos gastos">
+        {byCategory.filter((c:any)=>c.total>0).map((cat:any)=>(
+          <SectionRow key={cat.id}
+            icon={<span style={{ fontSize:14 }}>{cat.emoji}</span>}
+            iconBg="var(--bg3)" label={cat.name}
+            value={fmt(cat.total)}
+            bar={true} barPct={totalGasto>0?Math.min(cat.total/totalGasto*100,100):0} barColor={cat.color}
+          />
+        ))}
+        {byCategory.every((c:any)=>c.total===0)&&(
+          <div style={{ padding:"16px", textAlign:"center", color:"var(--text2)", fontSize:13 }}>Nenhum gasto registrado ainda</div>
+        )}
+      </CollapsibleSection>
 
-      {/* META RENDA */}
-      {extraNeeded>0&&(
-        <div className="card" style={{ marginBottom:14 }}>
-          <div style={{ fontSize:13, fontWeight:700, marginBottom:10 }}>🎯 Meta de Renda Extra</div>
-          <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"var(--text2)", marginBottom:6 }}>
-            <span>Necessário: {fmt(extraNeeded)}</span><span>Ganhou: {fmt(totalIncome)}</span>
-          </div>
-          <div className="progress-bar"><div className="progress-fill" style={{ width:`${Math.min(totalIncome/extraNeeded*100,100)}%`, background:"linear-gradient(90deg,var(--primary),var(--purple))" }}/></div>
-        </div>
-      )}
-
-      {/* POR CATEGORIA */}
-      <div className="card" style={{ marginBottom:14 }}>
-        <div style={{ fontSize:13, fontWeight:700, marginBottom:12 }}>📂 Por Categoria</div>
-        {byCategory.map((cat:any)=>(
-          <div key={cat.id} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
-            <span style={{ fontSize:15, width:22 }}>{cat.emoji}</span>
-            <div style={{ flex:1 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, fontWeight:600 }}>
-                <span>{cat.name}</span>
-                <span style={{ color:cat.total>0?"var(--text)":"var(--text2)", fontVariantNumeric:"tabular-nums" }}>{fmt(cat.total)}</span>
-              </div>
-              <div className="progress-bar" style={{ marginTop:4 }}><div className="progress-fill" style={{ width:`${(totalExpSemSonho+totalCC)>0?Math.min(cat.total/(totalExpSemSonho+totalCC)*100,100):0}%`, background:cat.color }}/></div>
+      {/* STREAK — compacto */}
+      <div onClick={onStreak} style={{ background:streakClaimed?"rgba(0,214,143,0.06)":"rgba(130,10,209,0.08)", border:`0.5px solid ${streakClaimed?"rgba(0,214,143,0.25)":"rgba(130,10,209,0.3)"}`, borderRadius:12, padding:"12px 16px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:8 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <span style={{ fontSize:20 }}>{getStreakIcon(streakDays)}</span>
+          <div>
+            <div style={{ fontSize:11, color:"var(--text2)", fontWeight:700, textTransform:"uppercase", letterSpacing:0.8, marginBottom:1 }}>Streak diária</div>
+            <div style={{ fontSize:14, fontWeight:700, color:streakClaimed?"var(--green)":"#c084fc" }}>
+              {streakClaimed?`${streakDays} dias ✅`:`${streakDays} dias · resgatar`}
             </div>
           </div>
-        ))}
+        </div>
+        {!streakClaimed && <div style={{ fontSize:12, fontWeight:700, color:"#c084fc", background:"rgba(130,10,209,0.15)", border:"0.5px solid rgba(130,10,209,0.3)", padding:"4px 10px", borderRadius:8 }}>+{getStreakXP(streakDays+1)} XP</div>}
       </div>
-    </>
+
+      {/* IA */}
+      <AIInsightButton salary={salary} totalExp={totalExpSemSonho} totalCC={totalCC} totalIncome={totalIncome} healthScore={healthScore} streakDays={streakDays} xp={xp}/>
+
+      {/* META RENDA */}
+      {extraNeeded>0 && (
+        <div style={{ background:"var(--bg2)", borderRadius:12, padding:"12px 16px", marginBottom:8 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:"var(--text2)", marginBottom:6 }}>
+            <span>Meta renda extra</span>
+            <span className="hideable" style={{ color:"var(--green)", fontWeight:700 }}>{fmt(totalIncome)} / {fmt(extraNeeded)}</span>
+          </div>
+          <div style={{ height:4, background:"var(--bg3)", borderRadius:2, overflow:"hidden" }}>
+            <div style={{ height:"100%", width:`${Math.min(totalIncome/extraNeeded*100,100)}%`, background:"var(--primary)", borderRadius:2, transition:"width 0.6s ease" }}/>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1113,36 +1174,120 @@ export default function App() {
   );
 
   // ── MOBILE LAYOUT ─────────────────────────────────────────────────────────
-  return (
-    <div style={{ minHeight:"100vh", paddingBottom:80 }}>
-      {sharedModals}
-      <header style={{ background:"var(--bg2)", borderBottom:"1px solid var(--border)", padding:"13px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:50 }}>
+  const [valuesHidden, setValuesHidden] = useState(false);
+  const NAV_MOBILE = [
+    {id:"dashboard", label:"Início", icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>},
+    {id:"expenses",  label:"Despesas", icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>},
+    {id:"credit",    label:"Cartão", icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>},
+    {id:"reports",   label:"Relatórios", icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>},
+    {id:"profile",   label:"Perfil", icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>},
+  ];
+
+  // Aba Perfil — agrega configurações, metodologia, Ko-fi, sair
+  const ProfileTab = () => (
+    <div style={{ padding:"14px 0" }}>
+      <div style={{ padding:"0 14px 16px", display:"flex", alignItems:"center", gap:14 }}>
+        <div style={{ width:52, height:52, borderRadius:"50%", background:"#820AD1", display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, flexShrink:0 }}>{user.emoji||"💸"}</div>
         <div>
-          <div style={{ fontSize:17, fontWeight:900, background:"linear-gradient(135deg,#6c63ff,#b44fff)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", display:"flex", alignItems:"center", gap:6 }}>
-            <CoinIcon size={20}/> MONEYGAME
+          <div style={{ fontSize:16, fontWeight:700, color:"var(--text)" }}>{user.nickname||user.name?.split(" ")[0]}</div>
+          <div style={{ fontSize:12, color:"var(--text2)", marginTop:2 }}>{levelInfo.label} NV.{levelNum} · {xp.toLocaleString("pt-BR")} XP</div>
+        </div>
+      </div>
+      {[
+        {label:"📚 Metodologia", action:()=>setShowMethodology(true)},
+        {label:"⚙️ Configurações", action:()=>setShowSettings(true)},
+        {label:"☕ Pague um Ko-fi ao criador", action:()=>setShowDonation(true), color:"#c9a800"},
+      ].map((item,i)=>(
+        <button key={i} onClick={item.action} style={{ width:"100%", padding:"14px 16px", background:"none", border:"none", borderTop:"0.5px solid var(--border)", color:item.color||"var(--text)", fontSize:14, textAlign:"left", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          {item.label}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      ))}
+      <button onClick={logout} style={{ width:"100%", padding:"14px 16px", background:"none", border:"none", borderTop:"0.5px solid var(--border)", color:"var(--red)", fontSize:14, textAlign:"left", cursor:"pointer" }}>🚪 Sair</button>
+    </div>
+  );
+
+  return (
+    <div style={{ minHeight:"100vh", paddingBottom:72, background:"var(--bg)" }}>
+      {sharedModals}
+
+      {/* HEADER ROXO estilo Nubank */}
+      <div style={{ background:"#820AD1", padding:"20px 18px 24px", position:"sticky", top:0, zIndex:50 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
+          <div style={{ width:38, height:38, borderRadius:"50%", background:"rgba(255,255,255,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>{user.emoji||"💸"}</div>
+          <div style={{ display:"flex", gap:14 }}>
+            <button onClick={()=>setValuesHidden(h=>!h)} style={{ background:"none", border:"none", cursor:"pointer", padding:4 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                {valuesHidden
+                  ? <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></>
+                  : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
+                }
+              </svg>
+            </button>
+            <button onClick={()=>setTab("profile")} style={{ background:"none", border:"none", cursor:"pointer", padding:4 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            </button>
           </div>
-          <div style={{ fontSize:11, color:"var(--text2)" }}>{user.emoji || "💸"} {user.nickname || user.name?.split(" ")[0]} · ⚔️ NV.{levelNum}</div>
         </div>
-        <div style={{ display:"flex", gap:7 }}>
-          <button onClick={()=>setShowMethodology(true)} style={{ background:"var(--bg3)", border:"1px solid var(--border)", color:"var(--text2)", padding:"8px 11px", borderRadius:10, fontSize:12 }}>📚</button>
-          <button onClick={()=>setShowSettings(true)} style={{ background:"var(--bg3)", border:"1px solid var(--border)", color:"var(--text2)", padding:"8px 11px", borderRadius:10, fontSize:12 }}>⚙️</button>
-          <button onClick={logout} style={{ background:"var(--bg3)", border:"1px solid var(--border)", color:"var(--text2)", padding:"8px 11px", borderRadius:10, fontSize:12 }}>🚪</button>
+        <div style={{ fontSize:12, color:"rgba(255,255,255,0.7)", marginBottom:4 }}>Olá, {user.nickname||user.name?.split(" ")[0]}</div>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <div>
+            <div style={{ fontSize:26, fontWeight:600, color:"white", filter:valuesHidden?"blur(8px)":"none", transition:"filter 0.2s", userSelect:valuesHidden?"none" as any:"auto" }}>{fmt(balance)}</div>
+            <div style={{ fontSize:11, color:"rgba(255,255,255,0.6)", marginTop:2 }}>saldo livre este mês</div>
+          </div>
+          <div style={{ marginLeft:"auto", background:"rgba(255,255,255,0.15)", border:"0.5px solid rgba(255,255,255,0.25)", borderRadius:20, padding:"4px 10px", fontSize:11, color:"white", display:"flex", alignItems:"center", gap:4 }}>
+            <span style={{ fontSize:14 }}>{getStreakIcon(streakDays)}</span> {streakDays} dias
+          </div>
         </div>
-      </header>
-      <main style={{ padding:"14px 14px 0" }}>
-        <XPLevel xp={xp} level={level} levelNum={levelNum}/>
-        {tab==="dashboard"&&<DashboardContent {...dashProps}/>}
+      </div>
+
+      {/* AÇÕES RÁPIDAS */}
+      <div style={{ display:"flex", justifyContent:"space-around", background:"var(--bg2)", padding:"14px 8px 12px", borderBottom:"0.5px solid var(--border)", marginBottom:10 }}>
+        {[
+          {label:"Despesa", tab:"expenses", icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>},
+          {label:"Cartão",  tab:"credit",   icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>},
+          {label:"Renda",   tab:"income",   icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>},
+          {label:"Relatório",tab:"reports", icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>},
+        ].map((a,i)=>(
+          <button key={i} onClick={()=>setTab(a.tab)} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, background:"none", border:"none", cursor:"pointer" }}>
+            <div style={{ width:44, height:44, borderRadius:"50%", background:"var(--bg3)", display:"flex", alignItems:"center", justifyContent:"center" }}>{a.icon}</div>
+            <span style={{ fontSize:11, color:"var(--text2)" }}>{a.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* CONTEÚDO */}
+      <main style={{ padding:"0 12px" }}>
+        {/* Inject CSS para ocultar valores */}
+        <style>{valuesHidden ? `.hideable { filter: blur(6px); user-select: none; transition: filter 0.2s; }` : `.hideable { filter: none; transition: filter 0.2s; }`}</style>
+
+        {tab==="dashboard" && (
+          <>
+            <DashboardContent {...dashProps}/>
+            {/* Ranking strip */}
+            <button onClick={()=>setTab("ranking")} style={{ width:"100%", background:"var(--bg2)", border:"0.5px solid var(--border)", borderRadius:12, padding:"10px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer", marginBottom:10, marginTop:2 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, fontSize:12, color:"var(--text2)" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                Ver minha posição no ranking
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </>
+        )}
         {tab==="expenses"&&<ExpensesContent expenses={expenses} byCategory={byCategory} onAdd={()=>setShowAddExp(true)} onPay={async(exp:Expense)=>{ await apiFetch(`${API}/expenses/${exp.id}/paid`,{method:"PATCH",body:JSON.stringify({paid:!exp.paid})}); if(!exp.paid)gainXpRaw(XP_PAY_BILL); load(); }} onDelete={async(id:number)=>{ await apiFetch(`${API}/expenses/${id}`,{method:"DELETE"}); load(); }}/>}
         {tab==="credit"&&<CreditContent cc={cc} totalCC={totalCC} onAdd={()=>setShowAddCC(true)} onDelete={async(id:number)=>{ await apiFetch(`${API}/credit-card/${id}`,{method:"DELETE"}); load(); }}/>}
         {tab==="income"&&<IncomeContent incomes={incomes} totalIncome={totalIncome} extraNeeded={extraNeeded} onAdd={()=>setShowAddIncome(true)} onDelete={async(id:number)=>{ await apiFetch(`${API}/extra-income/${id}`,{method:"DELETE"}); load(); }}/>}
         {tab==="ranking"&&<RankingContent currentUserId={user.id}/>}
         {tab==="reports"&&<ReportsContent byCategory={byCategory} totalExpSemSonho={totalExpSemSonho} totalCC={totalCC} totalIncome={totalIncome} expenses={expenses} cc={cc} xp={xp} userId={user.id} salary={salary} healthScore={healthScore}/>}
+        {tab==="profile"&&<ProfileTab/>}
       </main>
-      <nav style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg2)", borderTop:"1px solid var(--border)", display:"flex", zIndex:50, overflowX:"auto" }}>
-        {NAV.map(n=>(
-          <button key={n.id} onClick={()=>setTab(n.id)} style={{ flex:1, minWidth:48, padding:"9px 2px 7px", background:"none", border:"none", display:"flex", flexDirection:"column", alignItems:"center", gap:2, color:tab===n.id?"var(--primary)":"var(--text2)", cursor:"pointer" }}>
-            <span style={{ fontSize:tab===n.id?19:17 }}>{n.icon}</span>
-            <span style={{ fontSize:9, fontWeight:700, letterSpacing:0.3 }}>{n.label}</span>
+
+      {/* NAV INFERIOR simplificada */}
+      <nav style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg2)", borderTop:"0.5px solid var(--border)", display:"flex", zIndex:50 }}>
+        {NAV_MOBILE.map(n=>(
+          <button key={n.id} onClick={()=>setTab(n.id)} style={{ flex:1, padding:"9px 2px 8px", background:"none", border:"none", display:"flex", flexDirection:"column", alignItems:"center", gap:3, color:tab===n.id?"#820AD1":"var(--text2)", cursor:"pointer" }}>
+            <div style={{ color:tab===n.id?"#820AD1":"var(--text2)" }}>{n.icon}</div>
+            <span style={{ fontSize:9, fontWeight:600, letterSpacing:0.2 }}>{n.label}</span>
           </button>
         ))}
       </nav>
@@ -1529,7 +1674,7 @@ function SettingsModal({ user, salary, onSave, onClose, onReset }: any) {
       })});
       const data = await res.json();
       if (res.ok) {
-        onSave(parseFloat((data.salaryBase ?? s) || "0"), { nickname: data.nickname, emoji: data.emoji });
+        onSave(parseFloat(data.salaryBase ?? s || "0"), { nickname: data.nickname, emoji: data.emoji });
       }
     } catch { onSave(parseFloat(s||"0")); }
     setLoading(false);
