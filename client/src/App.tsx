@@ -503,58 +503,82 @@ function AIInsightButton({ salary, totalExp, totalCC, totalIncome, healthScore, 
   const [loading, setLoading] = useState(false);
   const [insight, setInsight] = useState("");
   const [show, setShow] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const weekKey = `nc_ia_week_${Math.floor(Date.now() / (7*24*3600*1000))}`;
+  const lastGenerated = localStorage.getItem(weekKey);
+  const alreadyUsed = !!lastGenerated;
 
   const generate = async () => {
+    if (alreadyUsed || loading) return;
     setLoading(true); setShow(true); setInsight("");
     try {
-      const prompt = `Você é um consultor financeiro pessoal especialista na metodologia dos 6 potes. Analise os dados abaixo e dê 3 insights práticos e motivadores em português, em formato de lista curta. Seja direto e personalizado.
-
-Dados do mês atual:
-- Salário base: R$ ${salary.toFixed(2)}
-- Total despesas: R$ ${(totalExp + totalCC).toFixed(2)}
-- Renda extra: R$ ${totalIncome.toFixed(2)}
-- Saldo livre: R$ ${(salary + totalIncome - totalExp - totalCC).toFixed(2)}
-- Saúde financeira: ${healthScore}/100
-- Streak de dias: ${streakDays} dias
-- XP total: ${xp}
-
-Forneça insights concisos com no máximo 4 linhas cada, focando em ações práticas.`;
-
-      const res = await apiFetch(`${API}/ai/insights`, {
-        method:"POST",
-        body: JSON.stringify({ prompt })
-      });
+      const saldo = salary + totalIncome - totalExp - totalCC;
+      const prompt = `Você é consultor financeiro da metodologia dos 6 potes. Dê exatamente 3 insights práticos, curtos e diretos (máximo 3 linhas cada).\n\nDados:\n- Salário: R$ ${salary.toFixed(2)}\n- Despesas: R$ ${(totalExp+totalCC).toFixed(2)}\n- Renda extra: R$ ${totalIncome.toFixed(2)}\n- Saldo: R$ ${saldo.toFixed(2)}\n- Saúde: ${healthScore}/100\n- Streak: ${streakDays} dias\n\nResponda APENAS com os 3 insights numerados.`;
+      const res = await apiFetch(`${API}/ai/insights`, { method:"POST", body: JSON.stringify({ prompt }) });
       const data = await res.json();
-      if (res.ok) setInsight(data.text);
-      else setInsight("Não foi possível gerar insights agora. Verifique a configuração da API.");
-    } catch {
-      setInsight("Erro ao conectar com a IA. Tente novamente.");
-    }
+      if (res.ok) { setInsight(data.text); localStorage.setItem(weekKey, String(Date.now())); }
+      else setInsight("Não foi possível gerar agora.");
+    } catch { setInsight("Erro de conexão."); }
     setLoading(false);
   };
+  const daysLeft = alreadyUsed ? Math.max(1, 7 - Math.floor((Date.now() - parseInt(lastGenerated!)) / 86400000)) : 0;
 
   return (
     <>
-      <button onClick={generate} disabled={loading} style={{ width:"100%", padding:"13px 16px", borderRadius:14, background:"linear-gradient(135deg,rgba(108,99,255,0.15),rgba(180,79,255,0.15))", border:"1px solid rgba(108,99,255,0.35)", color:"#a78bfa", fontSize:14, fontWeight:700, cursor:loading?"default":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, marginBottom:14, transition:"all 0.2s" }}>
-        <span style={{ fontSize:18 }}>🤖</span>
-        {loading ? "Gerando análise..." : "Gerar Análise com IA"}
-      </button>
-      {show && (
-        <div style={{ background:"rgba(108,99,255,0.07)", border:"1px solid rgba(108,99,255,0.25)", borderRadius:14, padding:"16px", marginBottom:14 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-            <div style={{ fontSize:12, fontWeight:800, color:"#a78bfa", textTransform:"uppercase", letterSpacing:1 }}>🤖 Análise IA</div>
-            <button onClick={()=>setShow(false)} style={{ background:"none", border:"none", color:"var(--text2)", fontSize:14, cursor:"pointer", padding:"2px 6px" }}>✕</button>
+      <div style={{ background:"var(--bg2)", borderRadius:14, overflow:"hidden", marginBottom:8 }}>
+        <div style={{ padding:"13px 16px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(130,10,209,0.15)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>🤖</div>
+            <div>
+              <div style={{ fontSize:13, fontWeight:600, color:"var(--text)" }}>Análise com IA</div>
+              <div style={{ fontSize:11, color:"var(--text2)", marginTop:1 }}>{alreadyUsed ? `Próxima em ${daysLeft} dia${daysLeft>1?"s":""}` : "3 insights personalizados"}</div>
+            </div>
           </div>
-          {loading ? (
-            <div style={{ color:"var(--text2)", fontSize:13, textAlign:"center", padding:"8px 0" }}>Analisando seus dados...</div>
-          ) : (
-            <div style={{ fontSize:13, color:"var(--text)", lineHeight:1.7, whiteSpace:"pre-wrap" }}>{insight}</div>
-          )}
+          <button onClick={alreadyUsed ? ()=>setShow(s=>!s) : generate} disabled={loading}
+            style={{ background:alreadyUsed?"var(--bg3)":"rgba(130,10,209,0.2)", border:`0.5px solid ${alreadyUsed?"var(--border)":"rgba(130,10,209,0.4)"}`, color:alreadyUsed?"var(--text2)":"#c084fc", borderRadius:8, padding:"6px 12px", fontSize:12, fontWeight:600, cursor:loading?"default":"pointer", whiteSpace:"nowrap" as any }}>
+            {loading ? "..." : alreadyUsed ? (show?"ocultar":"ver") : "gerar"}
+          </button>
+        </div>
+        {show && (
+          <div style={{ borderTop:"0.5px solid var(--border)", padding:"12px 16px" }}>
+            {loading ? <div style={{ color:"var(--text2)", fontSize:13, textAlign:"center" }}>Analisando...</div>
+              : <div style={{ fontSize:13, color:"var(--text)", lineHeight:1.7, whiteSpace:"pre-wrap" }}>{insight}</div>}
+          </div>
+        )}
+      </div>
+      <ReportButton/>
+    </>
+  );
+}
+
+function ReportButton() {
+  const [show, setShow] = useState(false);
+  return (
+    <>
+      <div onClick={()=>setShow(true)} style={{ background:"var(--bg2)", borderRadius:14, padding:"13px 16px", marginBottom:8, display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ width:34, height:34, borderRadius:"50%", background:"rgba(0,214,143,0.12)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>📄</div>
+          <div>
+            <div style={{ fontSize:13, fontWeight:600, color:"var(--text)" }}>Relatório Mensal PDF</div>
+            <div style={{ fontSize:11, color:"var(--text2)", marginTop:1 }}>Resumo completo do mês</div>
+          </div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      {show && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:200, padding:20 }} onClick={()=>setShow(false)}>
+          <div style={{ background:"var(--bg2)", borderRadius:18, padding:"28px 22px", maxWidth:340, width:"100%", textAlign:"center" }} onClick={e=>e.stopPropagation()}>
+            <div style={{ fontSize:36, marginBottom:12 }}>📄</div>
+            <div style={{ fontSize:16, fontWeight:700, color:"var(--text)", marginBottom:8 }}>Relatório Mensal</div>
+            <div style={{ fontSize:13, color:"var(--text2)", lineHeight:1.6, marginBottom:20 }}>Em desenvolvimento. Disponível em breve no NaCarteira!</div>
+            <button onClick={()=>setShow(false)} style={{ width:"100%", padding:"12px", borderRadius:10, background:"rgba(130,10,209,0.2)", border:"0.5px solid rgba(130,10,209,0.4)", color:"#c084fc", fontSize:14, fontWeight:600, cursor:"pointer" }}>Entendido</button>
+          </div>
         </div>
       )}
     </>
   );
 }
+
 
 // ── RANKING CONTENT ───────────────────────────────────────────────────────────
 function RankingContent({ currentUserId }: { currentUserId: number }) {
@@ -1029,7 +1053,18 @@ export default function App() {
     setExpenses(Array.isArray(e)?e:[]); setCC(Array.isArray(c)?c:[]); setIncomes(Array.isArray(i)?i:[]);
     try {
       const uRes = await apiFetch(`${API}/auth/me/${user.id}`);
-      if (uRes.ok) { const uData = await uRes.json(); if (uData.salaryBase !== undefined) setSalary(num(uData.salaryBase)); }
+      if (uRes.ok) {
+        const uData = await uRes.json();
+        if (uData.salaryBase !== undefined) setSalary(num(uData.salaryBase));
+        // Sync streak do servidor — fonte de verdade
+        if (uData.streakDays !== undefined) setStreakDays(num(uData.streakDays));
+        if (uData.lastCheckin !== undefined) {
+          const today = new Date(); today.setHours(0,0,0,0);
+          const last = uData.lastCheckin ? new Date(uData.lastCheckin) : null;
+          if (last) { last.setHours(0,0,0,0); setStreakClaimed(last.getTime()===today.getTime()); }
+          else setStreakClaimed(false);
+        }
+      }
     } catch {}
   },[user]);
 
@@ -1175,46 +1210,22 @@ export default function App() {
 
   // ── MOBILE LAYOUT ─────────────────────────────────────────────────────────
   const [valuesHidden, setValuesHidden] = useState(false);
-  const NAV_MOBILE = [
-    {id:"dashboard", label:"Início", icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>},
-    {id:"expenses",  label:"Despesas", icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>},
-    {id:"credit",    label:"Cartão", icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>},
-    {id:"reports",   label:"Relatórios", icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>},
-    {id:"profile",   label:"Perfil", icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>},
-  ];
 
-  // Aba Perfil — agrega configurações, metodologia, Ko-fi, sair
-  const ProfileTab = () => (
-    <div style={{ padding:"14px 0" }}>
-      <div style={{ padding:"0 14px 16px", display:"flex", alignItems:"center", gap:14 }}>
-        <div style={{ width:52, height:52, borderRadius:"50%", background:"#820AD1", display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, flexShrink:0 }}>{user.emoji||"💸"}</div>
-        <div>
-          <div style={{ fontSize:16, fontWeight:700, color:"var(--text)" }}>{user.nickname||user.name?.split(" ")[0]}</div>
-          <div style={{ fontSize:12, color:"var(--text2)", marginTop:2 }}>{levelInfo.label} NV.{levelNum} · {xp.toLocaleString("pt-BR")} XP</div>
-        </div>
-      </div>
-      {[
-        {label:"📚 Metodologia", action:()=>setShowMethodology(true)},
-        {label:"⚙️ Configurações", action:()=>setShowSettings(true)},
-        {label:"☕ Pague um Ko-fi ao criador", action:()=>setShowDonation(true), color:"#c9a800"},
-      ].map((item,i)=>(
-        <button key={i} onClick={item.action} style={{ width:"100%", padding:"14px 16px", background:"none", border:"none", borderTop:"0.5px solid var(--border)", color:item.color||"var(--text)", fontSize:14, textAlign:"left", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-          {item.label}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-      ))}
-      <button onClick={logout} style={{ width:"100%", padding:"14px 16px", background:"none", border:"none", borderTop:"0.5px solid var(--border)", color:"var(--red)", fontSize:14, textAlign:"left", cursor:"pointer" }}>🚪 Sair</button>
-    </div>
-  );
+  // Aba Perfil — abre Settings diretamente (fix tela preta)
+  const ProfileTab = () => {
+    useEffect(() => { setShowSettings(true); setTab("dashboard"); }, []);
+    return null;
+  };
 
   return (
-    <div style={{ minHeight:"100vh", paddingBottom:72, background:"var(--bg)" }}>
+    <div style={{ minHeight:"100vh", paddingBottom:16, background:"var(--bg)" }}>
       {sharedModals}
 
-      {/* HEADER ROXO estilo Nubank */}
+      {/* HEADER ROXO */}
       <div style={{ background:"#820AD1", padding:"20px 18px 24px", position:"sticky", top:0, zIndex:50 }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
-          <div style={{ width:38, height:38, borderRadius:"50%", background:"rgba(255,255,255,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>{user.emoji||"💸"}</div>
+          {/* Avatar — abre configurações */}
+          <button onClick={()=>setShowSettings(true)} style={{ width:38, height:38, borderRadius:"50%", background:"rgba(255,255,255,0.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, border:"none", cursor:"pointer" }}>{user.emoji||"💸"}</button>
           <div style={{ display:"flex", gap:14 }}>
             <button onClick={()=>setValuesHidden(h=>!h)} style={{ background:"none", border:"none", cursor:"pointer", padding:4 }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -1224,8 +1235,8 @@ export default function App() {
                 }
               </svg>
             </button>
-            <button onClick={()=>setTab("profile")} style={{ background:"none", border:"none", cursor:"pointer", padding:4 }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            <button onClick={()=>setShowMethodology(true)} style={{ background:"none", border:"none", cursor:"pointer", padding:4 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             </button>
           </div>
         </div>
@@ -1235,65 +1246,70 @@ export default function App() {
             <div style={{ fontSize:26, fontWeight:600, color:"white", filter:valuesHidden?"blur(8px)":"none", transition:"filter 0.2s", userSelect:valuesHidden?"none" as any:"auto" }}>{fmt(balance)}</div>
             <div style={{ fontSize:11, color:"rgba(255,255,255,0.6)", marginTop:2 }}>saldo livre este mês</div>
           </div>
-          <div style={{ marginLeft:"auto", background:"rgba(255,255,255,0.15)", border:"0.5px solid rgba(255,255,255,0.25)", borderRadius:20, padding:"4px 10px", fontSize:11, color:"white", display:"flex", alignItems:"center", gap:4 }}>
+          <div onClick={()=>setShowStreak(true)} style={{ marginLeft:"auto", background:"rgba(255,255,255,0.15)", border:"0.5px solid rgba(255,255,255,0.25)", borderRadius:20, padding:"4px 10px", fontSize:11, color:"white", display:"flex", alignItems:"center", gap:4, cursor:"pointer" }}>
             <span style={{ fontSize:14 }}>{getStreakIcon(streakDays)}</span> {streakDays} dias
           </div>
         </div>
       </div>
 
-      {/* AÇÕES RÁPIDAS */}
+      {/* AÇÕES RÁPIDAS — Cartão integrado em Despesas */}
       <div style={{ display:"flex", justifyContent:"space-around", background:"var(--bg2)", padding:"14px 8px 12px", borderBottom:"0.5px solid var(--border)", marginBottom:10 }}>
         {[
-          {label:"Despesa", tab:"expenses", icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>},
-          {label:"Cartão",  tab:"credit",   icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>},
-          {label:"Renda",   tab:"income",   icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>},
-          {label:"Relatório",tab:"reports", icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>},
+          {label:"Despesa", action:()=>setShowAddExp(true), icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>},
+          {label:"Cartão",  action:()=>setTab("credit"),   icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>},
+          {label:"Renda",   action:()=>setShowAddIncome(true), icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>},
+          {label:"Mais",    action:()=>setTab("expenses"), icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>},
         ].map((a,i)=>(
-          <button key={i} onClick={()=>setTab(a.tab)} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, background:"none", border:"none", cursor:"pointer" }}>
+          <button key={i} onClick={a.action} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, background:"none", border:"none", cursor:"pointer" }}>
             <div style={{ width:44, height:44, borderRadius:"50%", background:"var(--bg3)", display:"flex", alignItems:"center", justifyContent:"center" }}>{a.icon}</div>
             <span style={{ fontSize:11, color:"var(--text2)" }}>{a.label}</span>
           </button>
         ))}
       </div>
 
-      {/* CONTEÚDO */}
+      {/* CONTEÚDO — sem nav inferior */}
       <main style={{ padding:"0 12px" }}>
-        {/* Inject CSS para ocultar valores */}
-        <style>{valuesHidden ? `.hideable { filter: blur(6px); user-select: none; transition: filter 0.2s; }` : `.hideable { filter: none; transition: filter 0.2s; }`}</style>
+        <style>{valuesHidden ? `.hideable{filter:blur(6px);user-select:none;transition:filter 0.2s}` : `.hideable{filter:none;transition:filter 0.2s}`}</style>
 
         {tab==="dashboard" && (
           <>
             <DashboardContent {...dashProps}/>
-            {/* Ranking strip */}
-            <button onClick={()=>setTab("ranking")} style={{ width:"100%", background:"var(--bg2)", border:"0.5px solid var(--border)", borderRadius:12, padding:"10px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer", marginBottom:10, marginTop:2 }}>
+            <button onClick={()=>setTab("ranking")} style={{ width:"100%", background:"var(--bg2)", border:"0.5px solid var(--border)", borderRadius:12, padding:"10px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", cursor:"pointer", marginBottom:10 }}>
               <div style={{ display:"flex", alignItems:"center", gap:8, fontSize:12, color:"var(--text2)" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                 Ver minha posição no ranking
               </div>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
+            <button onClick={()=>setShowDonation(true)} style={{ width:"100%", background:"rgba(255,215,0,0.06)", border:"0.5px solid rgba(255,215,0,0.2)", borderRadius:12, padding:"10px 16px", display:"flex", alignItems:"center", gap:8, cursor:"pointer", marginBottom:10 }}>
+              <span style={{ fontSize:14 }}>☕</span>
+              <span style={{ fontSize:12, color:"#c9a800" }}>Pague um Ko-fi ao criador</span>
+            </button>
           </>
         )}
         {tab==="expenses"&&<ExpensesContent expenses={expenses} byCategory={byCategory} onAdd={()=>setShowAddExp(true)} onPay={async(exp:Expense)=>{ await apiFetch(`${API}/expenses/${exp.id}/paid`,{method:"PATCH",body:JSON.stringify({paid:!exp.paid})}); if(!exp.paid)gainXpRaw(XP_PAY_BILL); load(); }} onDelete={async(id:number)=>{ await apiFetch(`${API}/expenses/${id}`,{method:"DELETE"}); load(); }}/>}
-        {tab==="credit"&&<CreditContent cc={cc} totalCC={totalCC} onAdd={()=>setShowAddCC(true)} onDelete={async(id:number)=>{ await apiFetch(`${API}/credit-card/${id}`,{method:"DELETE"}); load(); }}/>}
+        {tab==="credit"&&(
+          <div>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
+              <button onClick={()=>setTab("dashboard")} style={{ background:"var(--bg2)", border:"0.5px solid var(--border)", borderRadius:8, padding:"6px 10px", color:"var(--text2)", fontSize:12, cursor:"pointer" }}>← Voltar</button>
+              <h2 style={{ fontSize:16, fontWeight:700 }}>Cartão de Crédito</h2>
+            </div>
+            <CreditContent cc={cc} totalCC={totalCC} onAdd={()=>setShowAddCC(true)} onDelete={async(id:number)=>{ await apiFetch(`${API}/credit-card/${id}`,{method:"DELETE"}); load(); }}/>
+          </div>
+        )}
         {tab==="income"&&<IncomeContent incomes={incomes} totalIncome={totalIncome} extraNeeded={extraNeeded} onAdd={()=>setShowAddIncome(true)} onDelete={async(id:number)=>{ await apiFetch(`${API}/extra-income/${id}`,{method:"DELETE"}); load(); }}/>}
-        {tab==="ranking"&&<RankingContent currentUserId={user.id}/>}
+        {tab==="ranking"&&(
+          <div>
+            <button onClick={()=>setTab("dashboard")} style={{ background:"var(--bg2)", border:"0.5px solid var(--border)", borderRadius:8, padding:"6px 10px", color:"var(--text2)", fontSize:12, cursor:"pointer", marginBottom:14 }}>← Voltar</button>
+            <RankingContent currentUserId={user.id}/>
+          </div>
+        )}
         {tab==="reports"&&<ReportsContent byCategory={byCategory} totalExpSemSonho={totalExpSemSonho} totalCC={totalCC} totalIncome={totalIncome} expenses={expenses} cc={cc} xp={xp} userId={user.id} salary={salary} healthScore={healthScore}/>}
-        {tab==="profile"&&<ProfileTab/>}
       </main>
-
-      {/* NAV INFERIOR simplificada */}
-      <nav style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--bg2)", borderTop:"0.5px solid var(--border)", display:"flex", zIndex:50 }}>
-        {NAV_MOBILE.map(n=>(
-          <button key={n.id} onClick={()=>setTab(n.id)} style={{ flex:1, padding:"9px 2px 8px", background:"none", border:"none", display:"flex", flexDirection:"column", alignItems:"center", gap:3, color:tab===n.id?"#820AD1":"var(--text2)", cursor:"pointer" }}>
-            <div style={{ color:tab===n.id?"#820AD1":"var(--text2)" }}>{n.icon}</div>
-            <span style={{ fontSize:9, fontWeight:600, letterSpacing:0.2 }}>{n.label}</span>
-          </button>
-        ))}
-      </nav>
     </div>
   );
 }
+
 
 // ── ABA DESPESAS ──────────────────────────────────────────────────────────────
 function ExpensesContent({ expenses,byCategory,onAdd,onPay,onDelete }: any) {
@@ -1674,7 +1690,7 @@ function SettingsModal({ user, salary, onSave, onClose, onReset }: any) {
       })});
       const data = await res.json();
       if (res.ok) {
-        onSave(parseFloat((data.salaryBase ?? s) || "0"), { nickname: data.nickname, emoji: data.emoji });
+        onSave(parseFloat(data.salaryBase ?? s || "0"), { nickname: data.nickname, emoji: data.emoji });
       }
     } catch { onSave(parseFloat(s||"0")); }
     setLoading(false);
