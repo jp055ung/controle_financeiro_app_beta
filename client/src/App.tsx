@@ -63,7 +63,6 @@ function getHealthBand(score: number): { label: string; color: string; bg: strin
   if (score >= 16) return { label: "Muito Baixa", color: "#f97316", bg: "rgba(249,115,22,0.1)",   desc: "Risco de situação crítica. Revise seus gastos." };
   return              { label: "Ruim",            color: "#ff4d6a", bg: "rgba(255,77,106,0.12)",  desc: "Círculo de fragilidade. É hora de agir." };
 }
-}
 
 const STREAK_PHRASES: Record<string, string[]> = {
   "1-3":  ["Controle hoje, tranquilidade amanhã.","Dinheiro visto é dinheiro protegido.","O hábito está nascendo. Não pare agora."],
