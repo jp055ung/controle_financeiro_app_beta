@@ -1,18 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 
-const [canInstall, setCanInstall] = useState(false);
-
-useEffect(() => {
-  const handler = () => setCanInstall(true);
-  window.addEventListener("pwa-install-available", handler);
-  return () => window.removeEventListener("pwa-install-available", handler);
-}, []);
-
-const installApp = async () => {
-  const ok = await (window as any).installPWA?.();
-  if (ok) setCanInstall(false);
-};
-
 function CoinIcon({ size = 40 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -527,7 +514,7 @@ function OnboardingSalary({ user, onDone }: { user:User; onDone:()=>void }) {
 // ── PIX / DOAÇÃO ──────────────────────────────────────────────────────────────
 const PIX_PAYLOAD = "00020126580014BR.GOV.BCB.PIX013646f62c5c-a818-4b23-8519-cc39a29eaeb95204000053039865802BR5925Joao Paulo da Silva Sarai6009SAO PAULO62140510ZWPgQDzyTm630404BC";
 const PIX_NAME = "João Paulo da Silva Saraiva";
-const PIX_BANK = "NUBANK";
+const PIX_BANK = "Banco do Brasil";
 
 const DONATION_MSGS = [
   ["Você também faz parte desse projeto ✨", "Criado por uma pessoa só, para quem quer superar sua situação financeira com método."],
@@ -991,31 +978,6 @@ function DashboardContent({ expenses,cc,incomes,salary,balance,totalExpSemSonho,
         <span style={{ fontSize:12, color:"#c084fc", fontWeight:600 }}>☕ Apoie quem criou o MoneyGame</span>
         <span style={{ fontSize:11, color:"rgba(192,132,252,0.6)", fontWeight:500 }}>Pix rápido →</span>
       </div>
-
-      {/* BANNER INSTAL — topo, discreto */}
-      {canInstall && (
-  <div
-    onClick={installApp}
-    style={{
-      background: "rgba(108,99,255,0.07)",
-      border: "1px solid rgba(108,99,255,0.35)",
-      borderRadius: 12,
-      padding: "9px 14px",
-      marginBottom: 14,
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-    }}
-  >
-    <span style={{ fontSize: 12, fontWeight: 600, color: "#a78bfa" }}>
-      📲 Instalar MoneyGame no celular
-    </span>
-    <span style={{ fontSize: 11, opacity: 0.6 }}>
-      Baixar app →
-    </span>
-  </div>
-)}
 
       {/* SAÚDE FINANCEIRA — topo */}
       <HealthCard score={healthScore} salary={salary}/>
@@ -2646,24 +2608,6 @@ function SettingsModal({ user, salary, onSave, onClose, onReset }: any) {
         </div>
         <button className="btn-primary" onClick={save} disabled={loading||!s} style={{ width:"100%" }}>{loading?"Salvando...":"Salvar"}</button>
         <div style={{ borderTop:"1px solid var(--border)", paddingTop:14, display:"flex", flexDirection:"column", gap:8 }}>
-          {pwa?.canInstall && (
-  <button
-    onClick={pwa.install}
-    style={{
-      width: "100%",
-      background: "rgba(108,99,255,0.1)",
-      border: "1px solid rgba(108,99,255,0.35)",
-      color: "var(--primary)",
-      padding: "12px",
-      borderRadius: 12,
-      fontSize: 13,
-      fontWeight: 700,
-      cursor: "pointer"
-    }}
-  >
-    📲 Instalar App no celular
-  </button>
-)}
           <button onClick={()=>setShowChangePw(true)} style={{ width:"100%", background:"rgba(108,99,255,0.08)", color:"var(--primary)", padding:"12px", borderRadius:12, fontSize:13, fontWeight:700, border:"1px solid rgba(108,99,255,0.25)", cursor:"pointer" }}>
             🔑 Alterar Senha
           </button>
