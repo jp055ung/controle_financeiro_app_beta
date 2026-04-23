@@ -1,28 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
 
-{canInstall && (
-  <div
-    onClick={installApp}
-    style={{
-      background: "rgba(108,99,255,0.07)",
-      border: "1px solid rgba(108,99,255,0.35)",
-      borderRadius: 12,
-      padding: "9px 14px",
-      marginBottom: 14,
-      cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-    }}
-  >
-    <span style={{ fontSize: 12, fontWeight: 600, color: "#a78bfa" }}>
-      📲 Instalar MoneyGame no celular
-    </span>
-    <span style={{ fontSize: 11, opacity: 0.6 }}>
-      Baixar app →
-    </span>
-  </div>
-)}
+const [canInstall, setCanInstall] = useState(false);
+
+useEffect(() => {
+  const handler = () => setCanInstall(true);
+  window.addEventListener("pwa-install-available", handler);
+  return () => window.removeEventListener("pwa-install-available", handler);
+}, []);
+
+const installApp = async () => {
+  const ok = await (window as any).installPWA?.();
+  if (ok) setCanInstall(false);
+};
 
 function CoinIcon({ size = 40 }: { size?: number }) {
   return (
