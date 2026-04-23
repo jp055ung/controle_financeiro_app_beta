@@ -5,7 +5,7 @@ import "./index.css";
 
 let deferredPrompt: any = null;
 
-window.addEventListener("beforeinstallprompt", (e) => {
+window.addEventListener("beforeinstallprompt", (e: any
   e.preventDefault();
   deferredPrompt = e;
   window.dispatchEvent(new Event("pwa-install-available"));
