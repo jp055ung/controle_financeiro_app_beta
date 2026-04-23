@@ -979,6 +979,32 @@ function DashboardContent({ expenses,cc,incomes,salary,balance,totalExpSemSonho,
         <span style={{ fontSize:11, color:"rgba(192,132,252,0.6)", fontWeight:500 }}>Pix rápido →</span>
       </div>
 
+   {/* BANNER DOWNLOAD — topo, discreto */}   
+{pwa?.canInstall && (
+  <div
+    onClick={pwa.install}
+    style={{
+      background: "rgba(108,99,255,0.07)",
+      border: "1px solid rgba(108,99,255,0.35)",
+      borderRadius: 12,
+      padding: "9px 14px",
+      marginBottom: 14,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
+    }}
+  >
+    <span style={{ fontSize: 12, color: "#a78bfa", fontWeight: 600 }}>
+      📲 Instale o MoneyGame no seu celular
+    </span>
+    <span style={{ fontSize: 11, color: "rgba(167,139,250,0.6)" }}>
+      Funciona offline →
+    </span>
+  </div>
+)}
+
+
       {/* SAÚDE FINANCEIRA — topo */}
       <HealthCard score={healthScore} salary={salary}/>
 
