@@ -1,5 +1,29 @@
 import { useState, useEffect, useCallback } from "react";
 
+{canInstall && (
+  <div
+    onClick={installApp}
+    style={{
+      background: "rgba(108,99,255,0.07)",
+      border: "1px solid rgba(108,99,255,0.35)",
+      borderRadius: 12,
+      padding: "9px 14px",
+      marginBottom: 14,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+    }}
+  >
+    <span style={{ fontSize: 12, fontWeight: 600, color: "#a78bfa" }}>
+      📲 Instalar MoneyGame no celular
+    </span>
+    <span style={{ fontSize: 11, opacity: 0.6 }}>
+      Baixar app →
+    </span>
+  </div>
+)}
+
 function CoinIcon({ size = 40 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
