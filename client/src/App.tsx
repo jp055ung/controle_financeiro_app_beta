@@ -1,5 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
 
+
+const [canInstall, setCanInstall] = useState(false);
+
+useEffect(() => {
+  const handler = () => setCanInstall(true);
+  window.addEventListener("pwa-install-available", handler);
+  return () => window.removeEventListener("pwa-install-available", handler);
+}, []);
+
+const installApp = async () => {
+  const ok = await (window as any).installPWA?.();
+  if (ok) setCanInstall(false);
+};
+
+
 function CoinIcon({ size = 40 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
