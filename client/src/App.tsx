@@ -13,21 +13,6 @@ function CoinIcon({ size = 40 }: { size?: number }) {
   );
 }
 
-
-const [canInstall, setCanInstall] = useState(false)
-
-useEffect(() => {
-  const handler = () => setCanInstall(true)
-  window.addEventListener('pwa-install-available', handler)
-  return () => window.removeEventListener('pwa-install-available', handler)
-}, [])
-
-const installApp = async () => {
-  const ok = await (window as any).installPWA?.()
-  if (ok) setCanInstall(false)
-}
-
-
 const API = "/api";
 const fmt = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 const num = (s: any) => parseFloat(String(s || 0)) || 0;
