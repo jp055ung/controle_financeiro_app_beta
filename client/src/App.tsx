@@ -514,7 +514,7 @@ function OnboardingSalary({ user, onDone }: { user:User; onDone:()=>void }) {
 // ── PIX / DOAÇÃO ──────────────────────────────────────────────────────────────
 const PIX_PAYLOAD = "00020126580014BR.GOV.BCB.PIX013646f62c5c-a818-4b23-8519-cc39a29eaeb95204000053039865802BR5925Joao Paulo da Silva Sarai6009SAO PAULO62140510ZWPgQDzyTm630404BC";
 const PIX_NAME = "João Paulo da Silva Saraiva";
-const PIX_BANK = "Banco do Brasil";
+const PIX_BANK = "NUBANK";
 
 const DONATION_MSGS = [
   ["Você também faz parte desse projeto ✨", "Criado por uma pessoa só, para quem quer superar sua situação financeira com método."],
