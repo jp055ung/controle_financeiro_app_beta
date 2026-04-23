@@ -2634,6 +2634,24 @@ function SettingsModal({ user, salary, onSave, onClose, onReset }: any) {
         </div>
         <button className="btn-primary" onClick={save} disabled={loading||!s} style={{ width:"100%" }}>{loading?"Salvando...":"Salvar"}</button>
         <div style={{ borderTop:"1px solid var(--border)", paddingTop:14, display:"flex", flexDirection:"column", gap:8 }}>
+          {pwa?.canInstall && (
+  <button
+    onClick={pwa.install}
+    style={{
+      width: "100%",
+      background: "rgba(108,99,255,0.1)",
+      border: "1px solid rgba(108,99,255,0.35)",
+      color: "var(--primary)",
+      padding: "12px",
+      borderRadius: 12,
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: "pointer"
+    }}
+  >
+    📲 Instalar App no celular
+  </button>
+)}
           <button onClick={()=>setShowChangePw(true)} style={{ width:"100%", background:"rgba(108,99,255,0.08)", color:"var(--primary)", padding:"12px", borderRadius:12, fontSize:13, fontWeight:700, border:"1px solid rgba(108,99,255,0.25)", cursor:"pointer" }}>
             🔑 Alterar Senha
           </button>
