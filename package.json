@@ -4,7 +4,7 @@
   "description": "MoneyGame - Gamifique suas financas",
   "scripts": {
     "dev": "tsx server/index.ts",
-    "build": "vite build",
+    "build": "npx vite build"
     "start": "npx tsx server/index.ts"
   },
   "dependencies": {
